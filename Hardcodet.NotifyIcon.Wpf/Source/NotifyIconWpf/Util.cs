@@ -31,6 +31,9 @@ using System.Windows.Media;
 using System.Windows.Resources;
 using System.Windows.Threading;
 using Hardcodet.Wpf.TaskbarNotification.Interop;
+using System.Windows.Media.Imaging;
+using System.Runtime.InteropServices;
+using System.IO;
 
 namespace Hardcodet.Wpf.TaskbarNotification
 {
@@ -168,7 +171,7 @@ namespace Hardcodet.Wpf.TaskbarNotification
         public static Icon ToIcon(this ImageSource imageSource)
         {
             if (imageSource == null) return null;
-
+           
             Uri uri = new Uri(imageSource.ToString());
             StreamResourceInfo streamInfo = Application.GetResourceStream(uri);
 
@@ -182,6 +185,45 @@ namespace Hardcodet.Wpf.TaskbarNotification
             return new Icon(streamInfo.Stream);
         }
 
+        /// <summary>
+        /// Reads a given image resource into a WinForms icon.
+        /// </summary>
+        /// <param name="bitmapSource">Bitmap source pointing to
+        /// an icon file (*.ico).</param>
+        /// <returns>An icon object that can be used with the
+        /// taskbar area.</returns>
+        public static Icon ToIcon(this BitmapSource bitmapSource)
+        { 
+            if (bitmapSource == null) return null;
+
+            var ms = new MemoryStream();
+            var encoder = new PngBitmapEncoder(); // With this we also respect transparency.
+            encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
+            encoder.Save(ms);
+            var bmp = new System.Drawing.Bitmap(ms);
+            ms.Close();
+            return System.Drawing.Icon.FromHandle(bmp.GetHicon());
+        }
+
+        /// <summary>
+        /// Reads a given image resource into a WinForms icon.
+        /// </summary>
+        /// <param name="bitmapImage">Bitmap image pointing to
+        /// an icon file (*.ico).</param>
+        /// <returns>An icon object that can be used with the
+        /// taskbar area.</returns>
+        public static Icon ToIcon(this BitmapImage bitmapImage)
+        {
+            if (bitmapImage == null) return null;
+
+            var ms = new MemoryStream();
+            var encoder = new PngBitmapEncoder(); // With this we also respect transparency.
+            encoder.Frames.Add(BitmapFrame.Create(bitmapImage));
+            encoder.Save(ms);
+            var bmp = new System.Drawing.Bitmap(ms);
+            ms.Close();
+            return System.Drawing.Icon.FromHandle(bmp.GetHicon());
+        }
         #endregion
 
         #region evaluate listings
