@@ -44,6 +44,9 @@ namespace Hardcodet.Wpf.TaskbarNotification
     {
         public static readonly object SyncRoot = new object();
 
+        [DllImport("user32.dll")]
+        private extern static bool DestroyIcon(IntPtr handle);
+
         #region IsDesignMode
 
         private static readonly bool isDesignMode;
@@ -193,16 +196,30 @@ namespace Hardcodet.Wpf.TaskbarNotification
         /// <returns>An icon object that can be used with the
         /// taskbar area.</returns>
         public static Icon ToIcon(this BitmapSource bitmapSource)
-        { 
+        {
             if (bitmapSource == null) return null;
 
-            var ms = new MemoryStream();
+            // No need to dispse the memorystream as the created tmpBitmap "owns" the stream and already disposes it.
+            var memoryStream = new MemoryStream();
             var encoder = new PngBitmapEncoder(); // With this we also respect transparency.
             encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
-            encoder.Save(ms);
-            var bmp = new System.Drawing.Bitmap(ms);
-            ms.Close();
-            return System.Drawing.Icon.FromHandle(bmp.GetHicon());
+            encoder.Save(memoryStream);
+            // Make sure the stream is read from the beginning
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            using (var tmpBitmap = new Bitmap(memoryStream))
+            {
+                var iconHandle = tmpBitmap.GetHicon();
+                try
+                {
+                    // Create a clone, otherwise a dispose on the returned icon will NOT dispose the resources correctly!
+                    return (Icon)System.Drawing.Icon.FromHandle(iconHandle).Clone();
+                }
+                finally
+                {
+                    // Dispose of the icon resource that were created
+                    DestroyIcon(iconHandle);
+                }
+            }
         }
 
         /// <summary>
@@ -212,17 +229,31 @@ namespace Hardcodet.Wpf.TaskbarNotification
         /// an icon file (*.ico).</param>
         /// <returns>An icon object that can be used with the
         /// taskbar area.</returns>
-        public static Icon ToIcon(this BitmapImage bitmapImage)
+        public static Icon ToIcon(BitmapImage bitmapImage)
         {
             if (bitmapImage == null) return null;
 
-            var ms = new MemoryStream();
+            // No need to dispse the memorystream as the created tmpBitmap "owns" the stream and already disposes it.
+            var memoryStream = new MemoryStream();
             var encoder = new PngBitmapEncoder(); // With this we also respect transparency.
             encoder.Frames.Add(BitmapFrame.Create(bitmapImage));
-            encoder.Save(ms);
-            var bmp = new System.Drawing.Bitmap(ms);
-            ms.Close();
-            return System.Drawing.Icon.FromHandle(bmp.GetHicon());
+            encoder.Save(memoryStream);
+            // Make sure the stream is read from the beginning
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            using (var tmpBitmap = new Bitmap(memoryStream))
+            {
+                var iconHandle = tmpBitmap.GetHicon();
+                try
+                {
+                    // Create a clone, otherwise a dispose on the returned icon will NOT dispose the resources correctly!
+                    return (Icon)System.Drawing.Icon.FromHandle(iconHandle).Clone();
+                }
+                finally
+                {
+                    // Dispose of the icon resource that were created
+                    DestroyIcon(iconHandle);
+                }
+            }
         }
         #endregion
 
